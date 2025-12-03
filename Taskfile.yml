@@ -1,0 +1,95 @@
+# Taskfile.yml
+# Workspace automation for developing all OutlierDetectionJL packages together.
+#
+# Usage:
+#   task clone       # Clone all repos
+#   task env         # Create/instantiate Julia environment
+#   task dev         # Register all repos via `Pkg.dev`
+#   task test        # Test all packages
+#   task setup       # Run clone + env + dev
+#
+# ------------------------------------------------------------
+# Configuration
+# ------------------------------------------------------------
+version: '3'
+
+vars:
+  GITHUB_ORG: "OutlierDetectionJL"
+  REPOS:
+    - OutlierDetection.jl
+    - OutlierDetectionData.jl
+    - OutlierDetectionTest.jl
+    - OutlierDetectionInterface.jl
+    - OutlierDetectionNeighbors.jl
+    - OutlierDetectionNetworks.jl
+    - OutlierDetectionPython.jl
+
+# ------------------------------------------------------------
+# Helper: generate a space‑separated list of repo URLs
+# ------------------------------------------------------------
+tasks:
+  clone:
+    desc: "Clone all repositories into the workspace (HTTPS or SSH)"
+    vars:
+      USE_SSH: '{{.USE_SSH | default "1"}}'
+    cmds:
+      - for:
+          var: REPOS
+        silent: true
+        cmd: |
+          if [ -d "{{.ITEM}}" ]; then
+            echo "Skipping {{.ITEM}} (already exists)"
+          else
+            echo "Cloning {{.ITEM}}..."
+            {{if eq .USE_SSH "1"}}
+            git clone git@github.com:{{.GITHUB_ORG}}/{{.ITEM}}
+            {{else}}
+            git clone https://github.com/{{.GITHUB_ORG}}/{{.ITEM}}
+            {{end}}
+          fi
+
+  env:
+    desc: "Create and instantiate the Julia environment"
+    cmds:
+      - |
+        julia --project=. -e 'using Pkg; println("Activating project..."); Pkg.activate("."); println("Updating project..."); Pkg.update(); println("Instantiating project..."); Pkg.instantiate()'
+
+  dev:
+    desc: "Register all local repos into the environment via Pkg.dev"
+    deps: [env]
+    cmds:
+      - for:
+          var: REPOS
+        silent: true
+        cmd: |
+          if [ -d "{{.ITEM}}" ]; then
+            julia --project=. -e "
+              using Pkg;
+              repo = \"{{.ITEM}}\";
+              pkg = replace(repo, \".jl\" => \"\");
+              println(\"Dev-ing \$pkg from ./\$repo\");
+              Pkg.develop(path=repo)
+            "
+          else
+            echo "Skipping {{.ITEM}} (directory not found)"
+          fi
+
+  test:
+    desc: "Run tests for all packages"
+    deps: [dev]
+    cmds:
+      - for:
+          var: REPOS
+        silent: true
+        cmd: |
+          if [ -d "{{.ITEM}}" ]; then
+            julia --project=. -e "
+              using Pkg;
+              repo = \"{{.ITEM}}\";
+              pkg = replace(repo, \".jl\" => \"\");
+              println(\"\\n=== Testing \$pkg ===\");
+              Pkg.test(pkg)
+            "
+          else
+            echo "Skipping {{.ITEM}} (directory not found)"
+          fi

@@ -1,0 +1,14 @@
+# cloned Julia packages
+OutlierDetection*.jl/
+
+# Julia REPL/VS Code junk
+.julia/
+.vscode/
+
+# Julia auto-generated artifacts
+*.toml
+.CondaPkg/
+
+# build artifacts
+**/tmp/
+**/build/
