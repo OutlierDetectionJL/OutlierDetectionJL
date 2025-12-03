@@ -1,4 +1,4 @@
-# OutlierDetection Workspace (Pattern A)
+# OutlierDetection Workspace
 
 This workspace provides a lightweight, flexible development setup for working across repositories in the
 **OutlierDetectionJL** organization.
